@@ -3,9 +3,8 @@ import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.concurrent.TimeUnit;
 
 public class ClientWindow extends JFrame implements Runnable {
 
@@ -20,9 +19,47 @@ public class ClientWindow extends JFrame implements Runnable {
     private static String serverPort;
     private volatile boolean enable;
 
+    private static int RECONNECT_TIMEOUT = 3000;
+    private static int TIMEOUT = 1000;
+
+    public static void main(String[] args) {
+        if (args.length != 3) {
+            throw new RuntimeException("Set two params: <IP_SERVER> <PORT> <NICKNAME>");
+        }
+
+        initClient(args[0], args[1], args[2]);
+    }
+
+    private static void initClient(String ipServer, String port, String nickname) {
+        Socket clientSocket;
+        try {
+            clientSocket = new Socket();
+            clientSocket.connect(new InetSocketAddress(ipServer, Integer.parseInt(port)), TIMEOUT);
+            System.out.println("Connecting successful!");
+        } catch (Exception io) {
+            clientSocket = null;
+        }
+
+        DataInputStream dataInputStream = null;
+        DataOutputStream dataOutputStream = null;
+        try {
+            dataInputStream = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
+            dataOutputStream = new DataOutputStream(new BufferedOutputStream(clientSocket.getOutputStream()));
+        } catch (Exception io) {
+
+            try {
+                clientSocket.close();
+                if (dataInputStream != null) dataInputStream.close();
+            } catch (Exception e) {
+            }
+        }
+
+        new ClientWindow(ipServer, port, clientSocket, dataInputStream, dataOutputStream, nickname);
+    }
+
     public ClientWindow(String ipServer, String port, Socket socket,
                         DataInputStream dataInputStream, DataOutputStream dataOutputStream, String nickname) {
-        super("ChatClient - Server[" + ipServer + ":" + port + "]");
+        super("ChatClientDesktop - Server[" + ipServer + ":" + port + "]");
 
         serverIP = ipServer;
         serverPort = port;
@@ -35,10 +72,6 @@ public class ClientWindow extends JFrame implements Runnable {
         initUI();
 
         new Thread(this).start();
-    }
-
-    private void reconnected() {
-
     }
 
     private void initUI() {
@@ -127,7 +160,6 @@ public class ClientWindow extends JFrame implements Runnable {
             dataOutputStream.writeUTF(nickname + ": " + messageField.getText());
             dataOutputStream.flush();
         } catch (IOException io) {
-            io.printStackTrace();
             enable = false;
         }
 
@@ -138,86 +170,57 @@ public class ClientWindow extends JFrame implements Runnable {
     @Override
     public void run() {
         enable = true;
-        boolean flag = false;
+        boolean errFlag = false;
+        boolean isBlocked = false;
 
         while (true) {
-            try {
-                while (enable) {
-                    String msg = dataInputStream.readUTF();
-                    messagesArea.append(msg + "\n");
-                }
 
-            } catch (Exception io) {
-//                io.printStackTrace();
-                System.out.println("Server is not available... Timeout 5 seconds.");
+            if (socket != null && !errFlag) {
                 try {
-                    flag = true;
-                    socket = new Socket(serverIP, Integer.parseInt(serverPort));
-                    dataOutputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                    dataInputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-                    messageField.setEnabled(true);
-                    sendBtn.setEnabled(true);
-                    messageField.setText("");
-                    validate();
-                    flag = false;
-                    System.out.println("Server is OK...");
+
+                    while (enable) {
+                        String msg = dataInputStream.readUTF();
+                        messagesArea.append(msg + "\n");
+                    }
+                } catch (Exception io) {
+                    errFlag = true;
+                }
+            } else {
+
+                if (!isBlocked) {
+                    blocking();
+                    System.out.println("Server is not available... Timeout " + RECONNECT_TIMEOUT + " ms.");
+                    isBlocked = true;
+                }
+
+                try {
+                    Thread.sleep(RECONNECT_TIMEOUT);
+                    reconnect();
+                    if (errFlag) errFlag = false;
+                    isBlocked = false;
                 } catch (Exception e) {
-//                    e.printStackTrace();
                 }
-
-            } finally {
-                if (flag) {
-                    messageField.setEnabled(false);
-                    sendBtn.setEnabled(false);
-                    messageField.setText("Server is not available. Please, try again...");
-                    validate();
-                }
-            }
-
-            try {
-                TimeUnit.SECONDS.sleep(5);
-//                Thread.sleep(5000);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }
 
-    public static void main(String[] args) {
-        if (args.length != 3) {
-            throw new RuntimeException("Set two params: <IP_SERVER> <PORT> <NICKNAME>");
-        }
+    private void reconnect() throws Exception {
+        socket = new Socket(serverIP, Integer.parseInt(serverPort));
+        dataOutputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+        dataInputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 
-        initClient(args[0], args[1], args[2]);
+        messageField.setEnabled(true);
+        sendBtn.setEnabled(true);
+        messageField.setText("");
+
+        validate();
+        System.out.println("Server is OK...");
     }
 
-    private static void initClient(String ipServer, String port, String nickname) {
-        Socket clientSocket = null;
-        try {
-            clientSocket = new Socket(InetAddress.getByName(ipServer), Integer.parseInt(port));
-        } catch (Exception io) {
-            io.printStackTrace();
-//            throw new RuntimeException("Server is not found or not available!");
-        }
-
-        DataInputStream dataInputStream = null;
-        DataOutputStream dataOutputStream = null;
-        try {
-            dataInputStream = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
-            dataOutputStream = new DataOutputStream(new BufferedOutputStream(clientSocket.getOutputStream()));
-        } catch (Exception io) {
-//            io.printStackTrace();
-
-            try {
-                clientSocket.close();
-                if (dataInputStream != null) dataInputStream.close();
-            } catch (Exception e) {
-//                e.printStackTrace();
-            }
-
-//            throw new RuntimeException("Server is not available!");
-        }
-
-        new ClientWindow(ipServer, port, clientSocket, dataInputStream, dataOutputStream, nickname);
+    private void blocking() {
+        messageField.setEnabled(false);
+        sendBtn.setEnabled(false);
+        messageField.setText("Server is not available. Please, try again...");
+        validate();
     }
 }

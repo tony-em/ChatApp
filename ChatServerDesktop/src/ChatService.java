@@ -36,7 +36,6 @@ public class ChatService extends Thread {
             }
 
         } catch (IOException io) {
-//            io.printStackTrace();
             System.out.println("Client " + this.clientSocket.getInetAddress() + " disconnected.");
         } finally {
             clients.remove(this);
@@ -46,7 +45,6 @@ public class ChatService extends Thread {
                 dataOutputStream.close();
                 dataInputStream.close();
             } catch (IOException io) {
-                io.printStackTrace();
             }
         }
     }
@@ -62,9 +60,7 @@ public class ChatService extends Thread {
                         client.dataOutputStream.writeUTF(msg);
                     }
                     client.dataOutputStream.flush();
-
                 } catch (IOException io) {
-                    io.printStackTrace();
                     client.enable = false;
                 }
             }
