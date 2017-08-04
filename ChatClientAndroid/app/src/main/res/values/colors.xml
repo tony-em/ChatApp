@@ -6,4 +6,5 @@
     <color name="background_send_btn">#4db6ac</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="msgColor">#ffffff</color>
 </resources>

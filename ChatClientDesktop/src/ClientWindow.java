@@ -157,7 +157,7 @@ public class ClientWindow extends JFrame implements Runnable {
         if (messageField.getText().equals("")) return;
 
         try {
-            dataOutputStream.writeUTF(nickname + ": " + messageField.getText());
+            dataOutputStream.writeUTF(nickname + " > " + messageField.getText().trim());
             dataOutputStream.flush();
         } catch (IOException io) {
             enable = false;

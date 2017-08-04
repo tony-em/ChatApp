@@ -30,7 +30,7 @@ public class ChatService extends Thread {
 
             while (enable) {
                 LocalTime localTime = LocalTime.now();
-                String nowTime = localTime.getHour() + ":" + localTime.getMinute() + ":" + localTime.getSecond() + " ";
+                String nowTime = localTime.getHour() + ":" + localTime.getMinute() + ":" + localTime.getSecond() + " > ";
                 String msg = nowTime + dataInputStream.readUTF();
                 sharing(msg);
             }
