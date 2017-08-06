@@ -9,7 +9,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="64dp"
+        android:layout_marginBottom="68dp"
         android:orientation="vertical">
 
         <android.support.v7.widget.RecyclerView
@@ -23,18 +23,20 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="68dp"
         android:layout_alignParentBottom="true"
         android:background="@color/background_input"
         android:orientation="horizontal">
 
         <EditText
+            android:id="@+id/input_msg"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.8"
             android:hint="Write a message..." />
 
         <Button
+            android:id="@+id/send_msg_btn"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.2"

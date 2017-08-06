@@ -92,6 +92,7 @@ public class ClientWindow extends JFrame implements Runnable {
         messageField.setText("Write a message...");
         DefaultCaret caret = (DefaultCaret) messagesArea.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        scrollPane.setAutoscrolls(true);
         messageField.requestFocus();
         sendBtn = new JButton("Send");
         sendBtn.setFont(new Font("Century Gothic", Font.BOLD, 14));
@@ -157,7 +158,7 @@ public class ClientWindow extends JFrame implements Runnable {
         if (messageField.getText().equals("")) return;
 
         try {
-            dataOutputStream.writeUTF(nickname + " > " + messageField.getText().trim());
+            dataOutputStream.writeUTF(nickname + " " + messageField.getText().trim());
             dataOutputStream.flush();
         } catch (IOException io) {
             enable = false;
@@ -179,8 +180,8 @@ public class ClientWindow extends JFrame implements Runnable {
                 try {
 
                     while (enable) {
-                        String msg = dataInputStream.readUTF();
-                        messagesArea.append(msg + "\n");
+                        String[] msgs = dataInputStream.readUTF().split(" ", 3);
+                        messagesArea.append(msgs[0] + " " + msgs[1] + " > " + msgs[2] + "\n");
                     }
                 } catch (Exception io) {
                     errFlag = true;

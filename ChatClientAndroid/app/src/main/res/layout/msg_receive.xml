@@ -4,7 +4,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="16dp"
+    android:paddingBottom="8dp"
     android:paddingRight="81dp"
     android:paddingTop="16dp">
 
@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:background="@color/msgColor"
-        app:cardCornerRadius="4dp"
+        app:cardCornerRadius="16dp"
         app:contentPadding="12dp">
 
         <LinearLayout

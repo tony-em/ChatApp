@@ -6,34 +6,56 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
 
-    private static MessageAdapter messageAdapter;
+    private List<String[]> msgs;
+    private List<MessageDispatcher.MsgState> msgsStates;
 
-    private List<String[]> msgs = new ArrayList<>();
-    private List<MsgType> msgsTypes = new ArrayList<>();
+    public MessageAdapter(List<String[]> msgs, List<MessageDispatcher.MsgState> msgsStates) {
+        validationData(msgs, msgsStates);
 
-    public enum MsgType {
-        TYPE_SEND, TYPE_RECEIVE
+        this.msgs = msgs;
+        this.msgsStates = msgsStates;
     }
 
-    private MessageAdapter() {
-    }
+    public void setupData(List<String[]> msgs, List<MessageDispatcher.MsgState> msgsTypes) {
+        validationData(msgs, msgsTypes);
 
-    public static MessageAdapter getInstance() {
-        if (messageAdapter == null)
-            return new MessageAdapter();
-        else
-            return messageAdapter;
-    }
+        this.msgs = msgs;
+        this.msgsStates = msgsTypes;
 
-    public void addMsg(String datetime, String nickname, String msg, MsgType type) {
-        msgs.add(new String[]{datetime, nickname, msg});
-        msgsTypes.add(type);
         notifyDataSetChanged();
+    }
+
+    public List<String[]> getMessagesData() {
+        return msgs;
+    }
+
+    public List<MessageDispatcher.MsgState> getMessagesTypesData() {
+        return msgsStates;
+    }
+
+    public void clearData() {
+        msgs.clear();
+        msgsStates.clear();
+
+        notifyDataSetChanged();
+    }
+
+    private void validationData(List<String[]> msgs, List<MessageDispatcher.MsgState> msgsTypes) {
+        if (msgs == null || msgsTypes == null) {
+            throw new NullPointerException("Lists is null");
+        }
+
+        if (msgs.size() != msgsTypes.size()) {
+            throw new NullPointerException("MsgsList and MsgsTypesList length must be equal");
+        }
+
+        if (!msgs.isEmpty() && msgs.get(0).length != 3) {
+            throw new NullPointerException("MsgsList item structure must be 0:datetime, 1:nickname, 2:msg");
+        }
     }
 
     @Override
@@ -57,13 +79,13 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     }
 
     @Override
-    public int getItemViewType(int position) {
-        return (msgsTypes.get(position) == MsgType.TYPE_SEND) ? 0 : 1;
+    public int getItemCount() {
+        return msgs.size();
     }
 
     @Override
-    public int getItemCount() {
-        return msgs.size();
+    public int getItemViewType(int position) {
+        return (msgsStates.get(position) == MessageDispatcher.MsgState.STATE_MY) ? 0 : 1;
     }
 
     public class MessageViewHolder extends RecyclerView.ViewHolder {

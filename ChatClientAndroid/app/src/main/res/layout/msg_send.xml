@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingBottom="16dp"
+    android:paddingBottom="8dp"
     android:paddingLeft="81dp"
     android:paddingTop="16dp">
 
@@ -19,7 +19,7 @@
         android:layout_marginRight="16dp"
         android:layout_weight="0.1"
         android:background="@color/msgColor"
-        app:cardCornerRadius="4dp"
+        app:cardCornerRadius="16dp"
         app:contentPadding="12dp">
 
         <LinearLayout
