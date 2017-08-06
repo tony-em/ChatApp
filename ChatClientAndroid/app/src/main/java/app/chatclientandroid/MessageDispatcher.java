@@ -25,18 +25,20 @@ public class MessageDispatcher extends Fragment {
     private String serverPort;
     private String nickname;
 
-    private static int TIMEOUT = 1000;
-    private static int RECONNECT_TIMEOUT = 1000;
+    public static int CONNECT_TIMEOUT = 1000;
+    public static int RECONNECT_TIMEOUT = 3000;
 
     private Handler msgDispatcher;
+    private volatile Handler statusServerDispatcher;
 
     private volatile boolean isMyMsg = false;
     private boolean activeBuffer = false;
 
     private MessageReceiverListener receiverListener = null;
-
     private ServerStatusListener serverStatusListener = null;
+
     private ServerStatus thisStatus = ServerStatus.STATUS_FAIL;
+
 
     public interface MessageReceiverListener {
         void messageReceive(String msg, MsgState state);
@@ -50,6 +52,7 @@ public class MessageDispatcher extends Fragment {
         this.receiverListener = null;
     }
 
+
     public interface ServerStatusListener {
         void status(ServerStatus status);
     }
@@ -62,13 +65,15 @@ public class MessageDispatcher extends Fragment {
         this.serverStatusListener = null;
     }
 
+
     public enum MsgState {
-        STATE_MY, STATE_NOT_MY, STATE_ERROR
+        STATE_MY, STATE_NOT_MY
     }
 
     public enum ServerStatus {
         STATUS_OK, STATUS_FAIL
     }
+
 
     public static MessageDispatcher newInstance(String serverIP, String serverPort, String nickname) {
         Bundle args = new Bundle();
@@ -93,21 +98,15 @@ public class MessageDispatcher extends Fragment {
         serverPort = getArguments().getString("serverPort");
         nickname = getArguments().getString("nickname");
 
+
         msgDispatcher = new Handler() {
 
             @Override
             public void handleMessage(Message msg) {
-                String strMsg = (String) msg.obj;
-
-                if (strMsg.equals("FAIL")) {
-                    receiveMsg("Server is not available", MsgState.STATE_ERROR);
-                    setFAILServerStatusFlag();
-                } else if (strMsg.equals("OK")) {
-                    setOKServerStatusFlag();
-                } else {
-                    setOKServerStatusFlag();
-
+                if (thisStatus == ServerStatus.STATUS_OK) {
+                    String strMsg = (String) msg.obj;
                     MsgState state;
+
                     if (isMyMsg) {
                         state = MsgState.STATE_MY;
                         isMyMsg = false;
@@ -118,60 +117,70 @@ public class MessageDispatcher extends Fragment {
                     receiveMsg(strMsg, state);
                     addMsgInBuff(strMsg, state);
                 }
+            }
+        };
 
+        statusServerDispatcher = new Handler() {
+
+            @Override
+            public void handleMessage(Message msg) {
                 setServerStatus(thisStatus);
             }
         };
 
         startMsgReceiverService();
+        startServerStatusService();
+    }
+
+
+    private class ReceiverService implements Runnable {
+
+        @Override
+        public void run() {
+
+            while (true) {
+
+                try {
+                    service();
+
+                } catch (Exception e1) {
+
+                    try {
+                        thisStatus = ServerStatus.STATUS_FAIL;
+
+                        if (socket != null) socket.close();
+                        if (dataInputStream != null) dataInputStream.close();
+                        if (dataOutputStream != null) dataOutputStream.close();
+                        Thread.sleep(RECONNECT_TIMEOUT);
+
+                    } catch (Exception e2) {}
+                }
+            }
+        }
+
+        private void service() throws Exception {
+            if (socket == null || dataInputStream == null || dataOutputStream == null) {
+                connect();
+                thisStatus = ServerStatus.STATUS_OK;
+                if (isMyMsg) isMyMsg = false;
+
+            } else {
+
+                try {
+                    addMsg(dataInputStream.readUTF());
+                } catch (IOException ioe) {
+                    dataInputStream = null;
+                    dataOutputStream = null;
+                }
+            }
+        }
     }
 
     private void startMsgReceiverService() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                boolean errFlag = false;
-
-                while (true) {
-
-                    if (socket == null || dataInputStream == null || dataOutputStream == null || errFlag) {
-                        try {
-                            connect();
-                            addMsgInDispatcher("OK");
-
-                            if (errFlag) errFlag = false;
-                            if (isMyMsg) isMyMsg = false;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            try {
-                                addMsgInDispatcher("FAIL");
-
-                                if (socket != null) socket.close();
-                                if (dataInputStream != null) dataInputStream.close();
-                                if (dataOutputStream != null) dataOutputStream.close();
-                            } catch (IOException e1) {
-                                e1.printStackTrace();
-                            }
-
-                            try {
-                                Thread.sleep(RECONNECT_TIMEOUT);
-                            } catch (Exception ex) {
-                            }
-                        }
-                    } else {
-                        try {
-                            addMsgInDispatcher(dataInputStream.readUTF());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            errFlag = true;
-                        }
-                    }
-                }
-            }
-        }).start();
+        new Thread(new ReceiverService()).start();
     }
 
-    private void addMsgInDispatcher(String strMsg) {
+    private void addMsg(String strMsg) {
         Message msg = new Message();
         msg.obj = strMsg;
         msg.setTarget(msgDispatcher);
@@ -180,7 +189,7 @@ public class MessageDispatcher extends Fragment {
 
     private void connect() throws IOException {
         socket = new Socket();
-        socket.connect(new InetSocketAddress(serverIp, Integer.parseInt(serverPort)), TIMEOUT);
+        socket.connect(new InetSocketAddress(serverIp, Integer.parseInt(serverPort)), CONNECT_TIMEOUT);
 
         dataInputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         dataOutputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
@@ -209,14 +218,20 @@ public class MessageDispatcher extends Fragment {
         }
     }
 
-    private void setOKServerStatusFlag() {
-        if (thisStatus == ServerStatus.STATUS_FAIL)
-            thisStatus = ServerStatus.STATUS_OK;
-    }
+    private void startServerStatusService() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
 
-    private void setFAILServerStatusFlag() {
-        if (thisStatus == ServerStatus.STATUS_OK)
-            thisStatus = ServerStatus.STATUS_FAIL;
+                while (true) {
+                    statusServerDispatcher.sendEmptyMessage(0);
+
+                    try {
+                        Thread.sleep(250);
+                    } catch (Exception ex) {}
+                }
+            }
+        }).start();
     }
 
 

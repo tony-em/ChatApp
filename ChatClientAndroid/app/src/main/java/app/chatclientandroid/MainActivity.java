@@ -119,12 +119,10 @@ public class MainActivity extends AppCompatActivity implements MessageDispatcher
 
     @Override
     public void messageReceive(String msg, MessageDispatcher.MsgState state) {
-        if (state != MessageDispatcher.MsgState.STATE_ERROR) {
-            msgList.add(MessageDispatcher.parseMsg(msg));
-            msgStatesList.add(state);
-            msgAdapter.setupData(msgList, msgStatesList);
-            scrollToEndMsg();
-        }
+        msgList.add(MessageDispatcher.parseMsg(msg));
+        msgStatesList.add(state);
+        msgAdapter.setupData(msgList, msgStatesList);
+        scrollToEndMsg();
     }
 
     @Override
