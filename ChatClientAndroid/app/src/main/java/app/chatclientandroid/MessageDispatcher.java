@@ -39,6 +39,9 @@ public class MessageDispatcher extends Fragment {
 
     private ServerStatus thisStatus = ServerStatus.STATUS_FAIL;
 
+    private Thread msgThread;
+    private Thread serverStatusThread;
+
 
     public interface MessageReceiverListener {
         void messageReceive(String msg, MsgState state);
@@ -132,6 +135,20 @@ public class MessageDispatcher extends Fragment {
         startServerStatusService();
     }
 
+    public void restartServerInfo(String serverIp, String serverPort, String nickname) {
+        stopMsgReceiverService();
+        stopServerStatusService();
+
+        this.serverIp = serverIp;
+        this.serverPort = serverPort;
+        this.nickname = nickname;
+
+        System.gc();
+
+        startMsgReceiverService();
+        startServerStatusService();
+    }
+
 
     private class ReceiverService implements Runnable {
 
@@ -140,20 +157,24 @@ public class MessageDispatcher extends Fragment {
 
             while (true) {
 
-                try {
-                    service();
-
-                } catch (Exception e1) {
+                while (!Thread.currentThread().isInterrupted()) {
 
                     try {
-                        thisStatus = ServerStatus.STATUS_FAIL;
+                        service();
 
-                        if (socket != null) socket.close();
-                        if (dataInputStream != null) dataInputStream.close();
-                        if (dataOutputStream != null) dataOutputStream.close();
-                        Thread.sleep(RECONNECT_TIMEOUT);
+                    } catch (Exception e1) {
 
-                    } catch (Exception e2) {}
+                        try {
+                            thisStatus = ServerStatus.STATUS_FAIL;
+
+                            if (socket != null) socket.close();
+                            if (dataInputStream != null) dataInputStream.close();
+                            if (dataOutputStream != null) dataOutputStream.close();
+                            Thread.sleep(RECONNECT_TIMEOUT);
+
+                        } catch (Exception e2) {
+                        }
+                    }
                 }
             }
         }
@@ -177,7 +198,13 @@ public class MessageDispatcher extends Fragment {
     }
 
     private void startMsgReceiverService() {
-        new Thread(new ReceiverService()).start();
+        msgThread = new Thread(new ReceiverService());
+        msgThread.start();
+    }
+
+    private void stopMsgReceiverService() {
+        msgThread.interrupt();
+        msgThread = null;
     }
 
     private void addMsg(String strMsg) {
@@ -202,7 +229,7 @@ public class MessageDispatcher extends Fragment {
     }
 
     public boolean sendMsg(String msg) throws Exception {
-        if (msg.isEmpty()) return false;
+        if (msg.trim().isEmpty()) return false;
 
         dataOutputStream.writeUTF(nickname + " " + msg.trim());
         isMyMsg = true;
@@ -219,19 +246,30 @@ public class MessageDispatcher extends Fragment {
     }
 
     private void startServerStatusService() {
-        new Thread(new Runnable() {
+        serverStatusThread = new Thread(new Runnable() {
             @Override
             public void run() {
 
                 while (true) {
-                    statusServerDispatcher.sendEmptyMessage(0);
 
-                    try {
-                        Thread.sleep(250);
-                    } catch (Exception ex) {}
+                    while (!Thread.currentThread().isInterrupted()) {
+
+                        statusServerDispatcher.sendEmptyMessage(0);
+
+                        try {
+                            Thread.sleep(250);
+                        } catch (Exception ex) {
+                        }
+                    }
                 }
             }
-        }).start();
+        });
+        serverStatusThread.start();
+    }
+
+    private void stopServerStatusService() {
+        serverStatusThread.interrupt();
+        serverStatusThread = null;
     }
 
 

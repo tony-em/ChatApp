@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:background="@color/msgColor"
+        app:cardBackgroundColor="@color/msgColor"
         app:cardCornerRadius="16dp"
         app:contentPadding="12dp">
 

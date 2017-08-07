@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="16dp"
         android:layout_weight="0.1"
-        android:background="@color/msgColor"
+        app:cardBackgroundColor="@color/msgSendColor"
         app:cardCornerRadius="16dp"
         app:contentPadding="12dp">
 

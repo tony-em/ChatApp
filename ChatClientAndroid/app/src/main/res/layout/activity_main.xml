@@ -15,7 +15,8 @@
         <android.support.v7.widget.RecyclerView
             android:id="@+id/msgs_pane"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:scrollbars="vertical">
 
         </android.support.v7.widget.RecyclerView>
 
@@ -35,12 +36,15 @@
             android:layout_weight="0.8"
             android:hint="Write a message..." />
 
-        <Button
+        <ImageButton
             android:id="@+id/send_msg_btn"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.2"
-            android:text="Send" />
+            android:contentDescription="SEND"
+            android:layout_margin="5dp"
+            android:background="@drawable/send_btn"
+            android:src="@mipmap/ic_send_grey600_48dp" />
 
     </LinearLayout>
 
