@@ -2,6 +2,8 @@ package app.chatclientandroid;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
@@ -9,6 +11,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -40,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
     private MessageDispatcher.ServerStatus serverStatus = MessageDispatcher.ServerStatus.STATUS_FAIL;
     private boolean isValidServer = false;
     private boolean clickListenerFlag = false;
+
+    private boolean msgNotifServiceFlag = false;
+
+    private long backPressTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +102,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        if (!isValidServer) {
+            disableInput();
+        }
+
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Connecting...");
         progressDialog.setCancelable(false);
@@ -115,7 +126,23 @@ public class MainActivity extends AppCompatActivity {
         getLayoutInflater().inflate(R.layout.server_inf, null);
 
         dialogBuilder.setView(getLayoutInflater().inflate(R.layout.server_inf, null))
-                .setPositiveButton("Connect", null);
+                .setPositiveButton("Connect", null)
+                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialogInterface) {
+                        showToast("Cancel");
+                    }
+                })
+                .setOnKeyListener(new DialogInterface.OnKeyListener() {
+                    @Override
+                    public boolean onKey(DialogInterface dialogInterface, int i, KeyEvent keyEvent) {
+                        if (i == KeyEvent.KEYCODE_BACK && keyEvent.getAction() == KeyEvent.ACTION_UP) {
+                            delayExit();
+                        }
+
+                        return false;
+                    }
+                });
 
         alertDialog = dialogBuilder.create();
 
@@ -161,11 +188,52 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void startMsgNotificationService(String[] msg) {
+        Intent intent = new Intent(this, MessageNotificationService.class);
+
+        if (msg == null) {
+            startService(intent);
+        } else {
+            startService(intent.putExtra("msgNotification", msg));
+        }
+    }
+
+    private void stopMsgNotificationService() {
+        Intent intent = new Intent(this, MessageNotificationService.class);
+        stopService(intent);
+    }
+
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
         outState.putBoolean("validServerFlag", isValidServer);
+    }
+
+    @Override
+    public void onBackPressed() {
+        delayExit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (msgNotifServiceFlag) {
+            stopMsgNotificationService();
+            msgNotifServiceFlag = false;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (!msgNotifServiceFlag) {
+            startMsgNotificationService(null);
+            msgNotifServiceFlag = true;
+        }
     }
 
     @Override
@@ -176,17 +244,43 @@ public class MainActivity extends AppCompatActivity {
             messageDispatcher.removeOnServerStatusListener();
         }
 
+        if (msgNotifServiceFlag) {
+            stopMsgNotificationService();
+            msgNotifServiceFlag = false;
+        }
+
         super.onDestroy();
+    }
+
+    private void delayExit() {
+        if (backPressTime + 2000 > System.currentTimeMillis()) {
+            if (alertDialog.isShowing()) hideServerInformationDialog();
+            exit();
+        } else {
+            showToast("Click again to exit");
+            backPressTime = System.currentTimeMillis();
+        }
+    }
+
+    private void exit() {
+        finish();
+        System.exit(0);
     }
 
 
     private MessageDispatcher.MessageReceiverListener messageReceiverListener = new MessageDispatcher.MessageReceiverListener() {
         @Override
         public void messageReceive(String msg, MessageDispatcher.MsgState state) {
+            String[] resultMsg = MessageDispatcher.parseMsg(msg);
+
             msgList.add(MessageDispatcher.parseMsg(msg));
             msgStatesList.add(state);
             msgAdapter.setupData(msgList, msgStatesList);
             scrollToEndMsg();
+
+            if (msgNotifServiceFlag) {
+                startMsgNotificationService(resultMsg);
+            }
         }
     };
 
@@ -218,6 +312,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View view) {
+            ipEt.setText("192.168.1.35");
+            portEt.setText("8082");
+            nicknameEt.setText("TestAndroid");
+
             serverIp = ipEt.getText().toString();
             serverPort = portEt.getText().toString();
             nickname = nicknameEt.getText().toString();
@@ -234,8 +332,7 @@ public class MainActivity extends AppCompatActivity {
                     messageDispatcher.restartServerInfo(serverIp, serverPort, nickname);
                 }
 
-                ValidServerProcess process = new ValidServerProcess();
-                process.execute();
+                new ValidServerProcess().execute();
             }
         }
     }

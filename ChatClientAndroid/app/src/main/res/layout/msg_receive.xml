@@ -4,16 +4,19 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingBottom="8dp"
+    android:paddingBottom="4dp"
     android:paddingRight="81dp"
     android:paddingTop="16dp">
 
     <android.support.v7.widget.CardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
         app:cardBackgroundColor="@color/msgColor"
         app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
         app:contentPadding="12dp">
 
         <LinearLayout

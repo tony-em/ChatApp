@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources>1
     <color name="colorPrimary">#455a64</color>
     <color name="background">#e0e0e0</color>
     <color name="background_input">#eeeeee</color>
     <color name="colorPrimaryDark">#303F9F</color>
-    <color name="btnSendColor">#bdbdbd</color>
+    <color name="btnSendColor">#50ff4081</color>
     <color name="colorAccent">#FF4081</color>
     <color name="msgColor">#ffffff</color>
     <color name="msgSendColor">#E8EAF6</color>

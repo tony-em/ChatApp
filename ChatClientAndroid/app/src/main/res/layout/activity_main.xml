@@ -27,6 +27,7 @@
         android:layout_height="68dp"
         android:layout_alignParentBottom="true"
         android:background="@color/background_input"
+        android:elevation="16dp"
         android:orientation="horizontal">
 
         <EditText
@@ -40,10 +41,10 @@
             android:id="@+id/send_msg_btn"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.2"
-            android:contentDescription="SEND"
             android:layout_margin="5dp"
+            android:layout_weight="0.2"
             android:background="@drawable/send_btn"
+            android:contentDescription="SEND"
             android:src="@mipmap/ic_send_grey600_48dp" />
 
     </LinearLayout>

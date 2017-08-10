@@ -233,7 +233,20 @@ public class MessageDispatcher extends Fragment {
 
         dataOutputStream.writeUTF(nickname + " " + msg.trim());
         isMyMsg = true;
-        dataOutputStream.flush();
+
+        Thread transaction = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    dataOutputStream.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        transaction.start();
+        transaction.interrupt();
 
         return true;
     }
